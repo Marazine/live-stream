@@ -108,8 +108,14 @@
             </el-option>
           </el-select>
         </div>
-        <div>
+        <div style="display:none" id="mkfstream"></div>
+        <div id="animate">
           <!-- 音量收集动画 -->
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
           <span></span>
           <span></span>
           <span></span>
@@ -309,6 +315,7 @@ export default {
           this.rightbtntext = "重新检测";
           break;
         case 3:
+          clearInterval(this.timeId);
           if (!flag) {
             // 去直播
             this.$router.push({
@@ -382,19 +389,31 @@ export default {
     },
     // 获取音量大小
     getshengyin() {
-      const localStream = TRTC.createStream({ audio: true });
+      const localStream = TRTC.createStream({
+        audio: true,
+      });
       localStream
         .initialize()
         .catch((error) => {
-          console.error("failed initialize localStream " + error);
+          console.log("初始化本地流失败", error);
         })
         .then(() => {
-          console.log("initialize localStream success");
-          // setInterval(() => {
-          //   // 从麦克风和摄像头采集本地音视频流
-          //   const volume = localStream.getAudioLevel();
-          //   console.log(volume);
-          // }, 100);
+          console.log("初始化本地流成功");
+          localStream.play("mkfstream");
+         this.timeId =  setInterval(() => {
+            // 从麦克风和摄像头采集本地音视频流
+            const volume = localStream.getAudioLevel();
+            // 获取比例，向上取整
+            let num = Math.ceil(15 * volume);
+            let spanlist = document.querySelectorAll("#animate>span");
+            spanlist.forEach((item, index) => {
+              if (num >= index + 1) {
+                item.className = "active";
+              } else {
+                item.classList.remove("active");
+              }
+            });
+          }, 50);
         });
     },
     // 播放音频

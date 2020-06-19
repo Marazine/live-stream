@@ -24,6 +24,7 @@
               <span>课件</span>
             </div>
             <div
+              ref="share"
               @click="sharewindow"
               class="share"
               :class="{ active: showmodel == 2 }"
@@ -106,7 +107,7 @@
                     alt
                   />
                   <img @click="fullscreen" src="../assets/live/全屏.png" alt />
-                  <img @click="exchange" src="../assets/live/互换.png" alt />
+                  <!-- <img @click="exchange" src="../assets/live/互换.png" alt /> -->
                 </div>
                 <div>
                   <img
@@ -141,7 +142,7 @@
                 </div>
                 <div>
                   <img @click="fullscreen" src="../assets/live/全屏.png" alt />
-                  <img src="../assets/live/互换.png" alt />
+                  <!-- <img src="../assets/live/互换.png" alt /> -->
                 </div>
                 <i>
                   <img
@@ -295,7 +296,7 @@
             action="http://zhibotest.yl1001.com/webservice/live_video/index.jsp/v1/sys/file/add?token=dXNlcj1saXZlX3ZpZGVvJnB3ZD1saXZlX3ZpZGVvX2RhdGFfam9iMTAwMQ=="
             :limit="1"
             :show-file-list="false"
-            accept=".ppt, .pptx, .pdf"
+            accept=".ppt, .pptx, .pdf,.word,.doc,.docx"
             :on-success="uploadSuccess"
             :before-upload="beforeUpload"
             :on-progress="Uploading"
@@ -311,12 +312,19 @@
           ></i>
         </div>
         <span class="tooltip" v-show="istishi">
-          <span>* 仅支持ppt、pptx、pdf</span>
+          <span>* 仅支持ppt、pptx、pdf、word、doc、docx</span>
           <span>* 上传课件大小不能超过100MB</span>
         </span>
         <div>
-          <img @click="getfilelist" src="../assets/live/刷新.png" alt />
-          <span @click="getfilelist" class="btn">刷新列表</span>
+          <img
+            style="cursor: pointer;"
+            @click="getfilelist"
+            src="../assets/live/刷新.png"
+            alt
+          />
+          <span style="cursor: pointer;" @click="getfilelist" class="btn"
+            >刷新列表</span
+          >
         </div>
       </div>
       <div class="Coursewares">
@@ -342,17 +350,18 @@
           <el-table-column prop="option" label="操作">
             <template slot-scope="scope">
               <div>
-                <span @click="openClick(scope.row)">打开课件</span>
-                <i class="el-icon-delete" @click="delClick(scope.row)"></i>
+                <span style="cursor: pointer;" @click="openClick(scope.row)"
+                  >打开课件</span
+                >
+                <i
+                  style="cursor: pointer;margin-left: 40px;"
+                  class="el-icon-delete"
+                  @click="delClick(scope.row)"
+                ></i>
               </div>
             </template>
           </el-table-column>
         </el-table>
-        <el-pagination
-          small
-          layout="prev, pager, next"
-          :total="6"
-        ></el-pagination>
       </div>
     </el-dialog>
     <!-- 设置 -->
@@ -445,7 +454,7 @@ export default {
       const userSig = this.genTestUserSig(this.userId).userSig;
       // 创建Client对象
       this.client = TRTC.createClient({
-        mode: "videoCall",
+        mode: "live",
         sdkAppId: sdkAppId,
         userId: this.userId,
         userSig: userSig,
@@ -553,22 +562,14 @@ export default {
         })
         .then(() => {
           console.log("初始化本地流成功");
-          // 创建成功之后播放
-          // 清空里面所有元素
-          // console.log(document.getElementById("streamlive2").html);
-
-          // document.getElementById("streamlive2").html = "";
           if (flag) {
             localStream.play("streamlive2");
-            // 获取所有video元素，设置为普通流
-            // const videos = document.getElementsByTagName('video');
             const videos = document.getElementsByTagName("video");
             for (let i = 0; i < videos.length; i++) {
               videos[i].style.position = "relative";
             }
           }
-          // 创建之后发布
-          this.reqstream();
+          // this.reqstream();
         });
     },
     // 发布本地音视频流
@@ -586,17 +587,18 @@ export default {
     reqstream() {
       let params = {
         info: JSON.stringify({
-          foreignKey: "21908338",
+          foreignKey: "1400380145",
           commonId: this.roomId + "_" + this.userId + "_main",
-          endTime: "2020-06-18 21:25:00",
-          thumbnail: "测试缩略图",
-          name: "一览网络直播招聘",
-          beginTime: "2020-06-18 09:25:00",
-          source: "一览",
-          intro: "一览网络网页开播",
-          type: 1,
-          comments: 0,
-          channelId: this.genTestUserSig(this.userId).sdkAppId,
+          beginTime: "2020-06-19 09:25:00",
+          endTime: "2020-06-19 21:25:00",
+          type: 4,
+          companyId: "255",
+          businessType: 10,
+          teachingAssistant: "18569548114",
+          source: "YILAN",
+          intro: "网页开播介绍",
+          name: "直播招聘",
+          thumbnail: "缩略图",
         }),
       };
       this.$http
@@ -710,65 +712,102 @@ export default {
           });
         });
     },
+    // 取消发布
+    unpublish(client, localStream) {
+      client.unpublish(localStream);
+      localStream.close();
+    },
     // 屏幕分享
     sharewindow() {
       if (!this.beginlive) {
-        this.$message.error("请先开始直播");
+        this.sharewindow1();
         return;
       }
-      this.unpublish();
-      let localStream = null;
-      // 创建屏幕分享流
-      localStream = TRTC.createStream({ audio: true, screen: true });
-      // 监听屏幕分享停止事件
-      localStream.on("screen-sharing-stopped", (event) => {
-        // 停止推送屏幕分享
-          this.publishStream(this.localStream,this.client);
+      this.localStream.close();
+      this.localStream = null;
+      // 新建屏幕分享流
+      this.localStream = TRTC.createStream({
+        userId: this.userId,
+        audio: true,
+        screen: true,
       });
-      // 初始化屏幕分享流
-      localStream.initialize().then(() => {
-        console.log("screencast stream init success");
-        // 发布屏幕分享流
-        this.client.publish(localStream).then(() => {
-          console.log("screen casting");
-        });
-      });
-      // 使用一个独立的用户 ID 进行推送屏幕分享
-      // const shareId = "share-userId";
-      // const sdkAppId = this.genTestUserSig(this.userId).sdkAppId;
-      // const userSig = this.genTestUserSig(this.userId).userSig;
-      // const roomId = this.roomId;
-      // const shareClient = TRTC.createClient({
-      //   mode: "videoCall",
-      //   sdkAppId,
-      //   userId: '1234',
-      //   shareId,
-      //   userSig,
-      // });
-
-      // // 指明该 shareClient 默认不接收任何远端流 （它只负责发送屏幕分享流）
-      // shareClient.setDefaultMuteRemoteStreams(true);
-      // shareClient.join({ roomId }).then(() => {
-      //   console.log("shareClient join success");
-      //   // 创建屏幕分享流
-      //   const localStream = TRTC.createStream({ audio: false, screen: true });
-      //   localStream.initialize().then(() => {
-      //     // screencast stream init success
-      //     shareClient.publish(localStream).then(() => {
-      //       console.log("screen casting");
-      //     });
-      //   });
-      // });
-    },
-    // 取消发布本地流
-    unpublish() {
-      this.client
-        .unpublish(this.localStream)
+      this.localStream
+        .initialize()
         .catch((error) => {
-          console.log("本地流取消发布失败", error);
+          console.log("初始化屏幕分享流失败", error);
+          this.createStream(this.userId, 1);
+          this.swtichstatus(1);
         })
         .then(() => {
-          console.log("本地流取消发布成功");
+          console.log("初始化屏幕分享流成功");
+          this.localStream.play("streamlive2");
+          const videos = document.getElementsByTagName("video");
+          for (let i = 0; i < videos.length; i++) {
+            videos[i].style.position = "relative";
+          }
+          // 检测屏幕分享停止事件
+          this.localStream.on("player-state-changed", (event) => {
+            if (event.reason == "ended") {
+              console.log(123);
+              this.localStream.close();
+              this.localStream = null;
+              this.createStream(this.userId, 1);
+              setTimeout(() => {
+                this.swtichstatus(1);
+              }, 2000);
+            }
+          });
+        });
+    },
+    sharewindow1() {
+      this.$refs.share.style.pointerEvents = "none";
+      this.localStream.close();
+      this.localStream = null;
+      // 新建屏幕分享流
+      this.localStream = TRTC.createStream({
+        userId: this.userId,
+        audio: true,
+        screen: true,
+      });
+      this.localStream.setAudioProfile('high');
+      this.localStream
+        .initialize()
+        .catch((error) => {
+          console.log("初始化屏幕分享流失败", error);
+          this.createStream(this.userId, 1);
+          this.$refs.share.style.pointerEvents = "normal";
+        })
+        .then(() => {
+          console.log("初始化屏幕分享流成功");
+          this.localStream.play("streamlive2");
+          // setInterval(()=>{
+          //   this.localStream.
+          // })
+          setInterval(() => {
+            const volume = this.localStream.getAudioLevel();
+            if (volume > 0) {
+              console.log(`${this.localStream.getUserId()} is speaking`);
+            } else {
+              console.log('no speaking');
+            }
+          }, 1000);
+          const videos = document.getElementsByTagName("video");
+          for (let i = 0; i < videos.length; i++) {
+            videos[i].style.position = "relative";
+          }
+          // 检测屏幕分享停止事件
+          this.localStream.on("player-state-changed", (event) => {
+            if (event.reason == "ended") {
+              console.log(123);
+              this.localStream.close();
+              this.localStream = null;
+              this.$refs.share.style.pointerEvents = "normal";
+              this.createStream(this.userId, 1);
+              setTimeout(() => {
+                this.swtichstatus(1);
+              }, 2000);
+            }
+          });
         });
     },
     // 本地移除课件
@@ -856,10 +895,10 @@ export default {
       this.isfullScreen = !this.isfullScreen;
     },
     // 互换操作
-    exchange() {
-      //将两个id的内容互换
-      // console.log(this.$refs.streamlive1);
-    },
+    // exchange() {
+    //   //将两个id的内容互换
+    //   // console.log(this.$refs.streamlive1);
+    // },
     swtichimg(index) {
       let boxWidth = document.getElementById("imglist").offsetWidth / 2;
       if (index == 0) {
@@ -928,8 +967,10 @@ export default {
         this.minute = this.min;
       }
     },
-    swtichstatus() {
-      this.beginlive = !this.beginlive;
+    swtichstatus(flag) {
+      if (!flag) {
+        this.beginlive = !this.beginlive;
+      }
       if (this.beginlive) {
         this.publishStream(this.localStream, this.client);
         this.timerId = setInterval(this.jishi, 1000);
@@ -1009,11 +1050,6 @@ export default {
 
       // 采用云端混合
     },
-    // 采集画布流
-    getCancasStream() {
-      let canvasEl = document.getElementById("myCanvas");
-      let stream = canvasEl.captrueStream(30);
-    },
   },
 };
 </script>
@@ -1089,7 +1125,7 @@ export default {
         .others {
           position: absolute;
           width: 100%;
-          bottom: 20px;
+          bottom: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -1102,7 +1138,7 @@ export default {
             background: #2b2c35;
             color: #adadc0;
             cursor: pointer;
-            margin-bottom: 90px;
+            margin-bottom: 120px;
           }
           > div:first-child {
             line-height: 56px;
@@ -1185,10 +1221,11 @@ export default {
         .footer {
           margin-right: -1px;
           height: 150px;
+          border: 1px solid #000000;
           .options {
             height: 30px;
             background-color: #3e3e4e;
-            border-right: 1px solid #000;
+            border-bottom: 1px solid #000000;
             .op {
               background-color: #2b2c35;
               float: right;
@@ -1196,6 +1233,7 @@ export default {
               display: flex;
               padding: 6px 3px 6px 12px;
               box-sizing: border-box;
+              border-right: 1px solid #000000;
               img {
                 width: 16px;
                 height: 16px;
@@ -1731,7 +1769,8 @@ export default {
             > i {
               font-size: 120%;
               margin-top: 2px;
-              color: red;
+              color: #3f83d1;
+              cursor: pointer;
             }
             .el-upload.el-upload--text {
               display: flex;
@@ -1755,10 +1794,10 @@ export default {
           }
           span.tooltip {
             position: absolute;
-            bottom: -14px;
+            bottom: -30px;
             left: 50%;
             margin-left: -88px;
-            z-index: 1000;
+            z-index: 100000;
             padding: 8px 12px;
             background-color: #ffffff;
             display: flex;
