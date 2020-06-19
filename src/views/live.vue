@@ -7,7 +7,7 @@
         </span>
         <span class="livetitle">
           <span>defwef</span>
-          <i v-if="!beginlive">无直播</i>
+          <i v-if="!beginlive">未直播</i>
           <i v-else class="liveing">直播中</i>
         </span>
         <div></div>
@@ -34,17 +34,11 @@
             </div>
           </div>
           <div class="others">
-            <div v-if="!beginlive" @click="swtichstatus()">上课</div>
+            <div v-if="!beginlive" @click="swtichstatus()">开播</div>
             <div v-else class="active" @click="swtichstatus()">
               <span>{{ hour }}:{{ minute }}:{{ second }}</span>
-              <span>下课</span>
+              <span>下播</span>
             </div>
-            <!-- <div>
-              <i class="el-icon-message"></i>
-            </div>
-            <div @click.prevent="dialogTableVisible2 = true">
-              <i class="el-icon-setting"></i>
-            </div>-->
           </div>
         </div>
         <div class="content">
@@ -288,7 +282,7 @@
     <el-dialog
       class="myclass"
       title="我的课件"
-      :visible.sync="dialogTableVisible1"
+      :visible.sync="dialogTableVisible"
     >
       <div class="option">
         <div>
@@ -364,12 +358,6 @@
         </el-table>
       </div>
     </el-dialog>
-    <!-- 设置 -->
-    <el-dialog
-      class="systemset"
-      title="系统设置"
-      :visible.sync="dialogTableVisible2"
-    ></el-dialog>
   </div>
 </template>
 
@@ -386,44 +374,42 @@ export default {
       client: "", // 客户端服务
       remoteStream: "", // 远方播放流
       localStream: "", // 本地流
-      dialogTableVisible2: false,
-      dialogTableVisible1: false,
-      istishi: false,
-      showmodel: true,
-      islive: true,
-      ishover: false,
+      dialogTableVisible: false, // 上传课件弹窗
+      istishi: false, // 上传课件的提示
+      showmodel: true, // 左侧功能突出显示
+      islive: true, // 是否正在直播
+      ishover: false, // 右上角是否悬浮显示功能选项
       deviceStatus: {
+        // 摄像头、麦克风、扬声器是否启用
         voice: true,
         Microphone: true,
         camera: true,
       },
-      swtichWindow: true,
-      isxiala: false,
-      isfullScreen: false,
-      startheight: null,
-      charword: "",
-      liveId: "",
-      comId: 0,
-      chatlist: [],
-      userForeignKey: "21908338", // 评论ID
-      pageNo: 1,
-      pageSize: 5,
-      filelist: [],
-      loading: null,
+      isxiala: false, // 下拉状态
+      isfullScreen: false, // 全屏状态
+      // charword: "",
+      liveId: "", // 直播Id
+      comId: 0, // 聊天最后一条消息的Id
+      chatlist: [], // 消息列表
+      // userForeignKey: "21908338", // 评论ID
+      pageNo: 1, // 课件列表页码
+      pageSize: 5, // 课件列表页尺寸
+      filelist: [], // 课件列表数据
+      loading: null, // 课件列表是否加载
       fileimglist: {
+        // 打开课件图片列表
         name: "",
         list: [],
       },
-      clicked: 0,
-      // 当前课件图片
-      currentimg: "",
-      totalimg: null,
-      currentindex: null,
-      beginlive: false,
-      hour: "00",
+      clicked: 0, // 当前点击的图片位置
+      currentimg: "", // 当前课件图片
+      totalimg: null, // 图片总数
+      currentindex: null, // 当前图片的index
+      beginlive: false, // 是否正在直播
+      hour: "00", // 计时器
       minute: "00",
       second: "00",
-      timerId: null,
+      timerId: null, // 定时器的清除标识
       sec: 0,
       min: 0,
       hours: 0,
@@ -437,11 +423,12 @@ export default {
     };
   },
   watch: {
-    charword: function(newVal, oldVal) {
-      this.charword = this.charword.length > 200 ? oldVal : newVal;
-    },
+    // charword: function(newVal, oldVal) {
+    //   this.charword = this.charword.length > 200 ? oldVal : newVal;
+    // },
   },
   methods: {
+    // 初始化样式
     initStyle() {
       const windowHeight =
         document.documentElement.clientHeight || document.body.clientHeight;
@@ -449,70 +436,7 @@ export default {
       this.$refs.rightwindow.style.height = windowHeight + "px";
       this.$refs.chats.style.height = windowHeight - 168 - 32 - 150 + "px";
     },
-    initStream() {
-      const sdkAppId = this.genTestUserSig(this.userId).sdkAppId;
-      const userSig = this.genTestUserSig(this.userId).userSig;
-      // 创建Client对象
-      this.client = TRTC.createClient({
-        mode: "live",
-        sdkAppId: sdkAppId,
-        userId: this.userId,
-        userSig: userSig,
-      });
-      // 注册远端监听，在加入房间之前
-      // this.subscribeStream(this.client);
-      // 初始化之后加入房间
-      this.joinRoom(this.client, this.roomId);
-    },
-    // 获取聊天消息
-    getchatlist() {
-      setInterval(() => {
-        let params = {
-          info: JSON.stringify({ comId: this.comId, liveId: this.liveId }),
-        };
-        this.$http
-          .post(this.$http.adornUrl("comments/info", "proxyLl"), params)
-          .then((data) => {
-            if (data.code == 200) {
-              // let length = data.data.length;
-              if (data.data.length != 0) {
-                this.comId = data.data[data.data.length - 1].msgId;
-                this.chatlist.push(...data.data);
-                this.$nextTick(() => {
-                  let obj = document.getElementById("chats");
-                  obj.scrollTop = obj.scrollHeight;
-                });
-              }
-            } else {
-              console.log("获取失败");
-            }
-          });
-      }, 1000);
-    },
-    // 上传聊天消息
-    uploadchat() {
-      if (!this.charword.length) {
-        return;
-      }
-      let params = {
-        info: JSON.stringify({
-          liveId: this.liveId,
-          comContent: this.charword,
-          userId: this.userId,
-          person_id: this.userForeignKey,
-        }),
-      };
-      this.$http
-        .post(this.$http.adornUrl("comments/insert", "proxyLl"), params)
-        .then((data) => {
-          if (data.code == 200) {
-            this.charword = "";
-          } else {
-            console.log("发表评论失败");
-          }
-        });
-    },
-    // 获取userSig
+    // 获取userSig和sdkAppId
     genTestUserSig(userID) {
       const SDKAPPID = 1400380145;
       const EXPIRETIME = 604800;
@@ -532,6 +456,20 @@ export default {
         userSig: userSig,
       };
     },
+    // 初始化房间
+    initStream() {
+      const sdkAppId = this.genTestUserSig(this.userId).sdkAppId;
+      const userSig = this.genTestUserSig(this.userId).userSig;
+      // 创建Client对象
+      this.client = TRTC.createClient({
+        mode: "live",
+        sdkAppId: sdkAppId,
+        userId: this.userId,
+        userSig: userSig,
+      });
+      // 初始化之后加入房间
+      this.joinRoom(this.client, this.roomId);
+    },
     // 加入房间
     joinRoom(client, roomId) {
       client
@@ -541,39 +479,95 @@ export default {
         })
         .then(() => {
           console.log("进房成功");
-          // 创建本地流
-          this.createStream(this.userId, 1);
-          // 播放远端流
-          // this.playStream(this.client);
+          this.createStream(this.userId);
         });
     },
-    // 创建本地音视频流
-    createStream(userId, flag) {
-      const localStream = TRTC.createStream({
+    // 音频流创建
+    createStream(userId) {
+      this.localStream = TRTC.createStream({
         userId,
         audio: true,
         video: true,
       });
-      this.localStream = localStream;
-      localStream
+      this.localStream
         .initialize()
         .catch((error) => {
-          console.log("初始化本地流失败", error);
+          console.log("初始化音频流失败", error);
         })
         .then(() => {
-          console.log("初始化本地流成功");
-          if (flag) {
-            localStream.play("streamlive2");
-            const videos = document.getElementsByTagName("video");
-            for (let i = 0; i < videos.length; i++) {
-              videos[i].style.position = "relative";
-            }
-          }
-          // this.reqstream();
+          console.log("初始化音频流成功");
         });
     },
+    // 屏幕分享流创建
+    createScreenStream(userId) {
+      this.localStream = TRTC.createStream({
+        userId,
+        audio: true,
+        screen: true,
+      });
+      // 初始化
+      this.localStream
+        .initialize()
+        .catch((error) => {
+          console.log("初始化屏幕分享流失败", error);
+        })
+        .then(() => {
+          console.log("初始化屏幕分享流成功");
+          // 检测屏幕分享停止事件
+          this.localStream.on("player-state-changed", (event) => {
+            if (event.reason == "ended") {
+              // 销毁流
+            }
+          });
+        });
+    },
+    // 销毁当前准备流
+    destructionStream() {
+      this.localStream.stop();
+      this.localStream.close();
+      this.localStream = null;
+    },
+    // 开播
+    showLive() {
+      this.beginlive = true;
+      // 发布本地流
+    },
+    // 下播
+    downLive() {
+      this.$confirm("是否停止直播?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          this.$message({
+            type: "success",
+            message: "直播已经停止!",
+          });
+          this.beginlive = false;a
+          // 取消发布直播
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消",
+          });
+        });
+    },
+    // 取消发布当前推送流
+    unPublishStream() {
+      this.client(this.localStream);
+    },
+    // 播放本地流
+    playStream() {
+      this.localStream.play("streamlive2");
+      const videos = document.getElementsByTagName("video");
+      for (let i = 0; i < videos.length; i++) {
+        videos[i].style.position = "relative";
+      }
+    },
     // 发布本地音视频流
-    publishStream(localStream, client) {
+    PublishStream(localStream, client) {
       client
         .publish(localStream)
         .catch((error) => {
@@ -583,64 +577,12 @@ export default {
           console.log("本地流发布成功");
         });
     },
-    // 将直播相关信息发送到服务器
-    reqstream() {
-      let params = {
-        info: JSON.stringify({
-          foreignKey: "1400380145",
-          commonId: this.roomId + "_" + this.userId + "_main",
-          beginTime: "2020-06-19 09:25:00",
-          endTime: "2020-06-19 21:25:00",
-          type: 4,
-          companyId: "255",
-          businessType: 10,
-          teachingAssistant: "18569548114",
-          source: "YILAN",
-          intro: "网页开播介绍",
-          name: "直播招聘",
-          thumbnail: "缩略图",
-        }),
-      };
-      this.$http
-        .post(this.$http.adornUrl("/live/insertInfoByUser", "proxyLl"), params)
-        .then((data) => {
-          if (data.code == 200) {
-            console.log("创建直播成功");
-            this.liveId = data.data.liveId;
-            // this.getchatlist();
-          } else {
-            console.log("创建直播");
-          }
-        });
-    },
-    // 订阅远端流 --加入房间之前
-    subscribeStream(client) {
-      client.on("stream-add", (event) => {
-        const remoteStream = event.stream;
-        console.log("远端流增加: " + event.stream.getId());
-        client.subscribe(remoteStream);
-      });
-    },
-    // 播放远端流
-    playStream(client) {
-      client.on("stream-subscribed", (event) => {
-        const remoteStream = event.stream;
-        console.log("远端流订阅成功" + remoteStream.getId());
-        this.remoteStream = `<view id="${"remote_stream-" +
-          remoteStream.getId()}"  ></view>`;
-        this.$nextTick(() => {
-          //播放
-          remoteStream.play("remote_stream-" + remoteStream.getId());
-        });
-      });
-    },
     // 退出音视频流
     leaveRoom(client) {
       client
         .leave()
         .then(() => {
           console.log("退房成功");
-          // 停止本地流，关闭本地流内部的音视频播放器
           this.localStream.stop();
           // 关闭本地流，释放摄像头和麦克风访问权限
           this.localStream.close();
@@ -651,187 +593,6 @@ export default {
         .catch((error) => {
           console.error("退房失败 " + error);
           // 错误不可恢复，需要刷新页面。
-        });
-    },
-    showdoclist() {
-      this.dialogTableVisible1 = true;
-      this.getfilelist();
-    },
-    // 打开课件
-    openClick(data) {
-      let params = {
-        fileId: data.id,
-        pageSize: 999,
-        liveId: this.liveId,
-      };
-      let filename = data.file_name;
-      this.$http
-        .post(this.$http.adornUrl("file/listImg", "proxyZx"), params)
-        .then((data) => {
-          if (data.code == 200) {
-            console.log(data);
-            this.fileimglist.name = filename;
-            this.fileimglist.list = data.data.list;
-            console.log(this.fileimglist);
-            this.swtichimg(0);
-            this.dialogTableVisible1 = false;
-            this.totalimg = data.data.total;
-          } else {
-            console.log("打开失败");
-          }
-        });
-    },
-    // 删除课件
-    delClick(data) {
-      this.$confirm("此操作将永久删除该课件, 是否继续?", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          let params = {
-            fileIds: data.id,
-            liveId: this.liveId,
-          };
-          this.$http
-            .post(this.$http.adornUrl("file/delete", "proxyZx"), params)
-            .then((data) => {
-              if (data.code == 200) {
-                this.$message({
-                  type: "success",
-                  message: "删除成功!",
-                });
-                this.getfilelist();
-              }
-            });
-        })
-        .catch(() => {
-          this.$message({
-            type: "info",
-            message: "已取消删除",
-          });
-        });
-    },
-    // 取消发布
-    unpublish(client, localStream) {
-      client.unpublish(localStream);
-      localStream.close();
-    },
-    // 屏幕分享
-    sharewindow() {
-      if (!this.beginlive) {
-        this.sharewindow1();
-        return;
-      }
-      this.localStream.close();
-      this.localStream = null;
-      // 新建屏幕分享流
-      this.localStream = TRTC.createStream({
-        userId: this.userId,
-        audio: true,
-        screen: true,
-      });
-      this.localStream
-        .initialize()
-        .catch((error) => {
-          console.log("初始化屏幕分享流失败", error);
-          this.createStream(this.userId, 1);
-          this.swtichstatus(1);
-        })
-        .then(() => {
-          console.log("初始化屏幕分享流成功");
-          this.localStream.play("streamlive2");
-          const videos = document.getElementsByTagName("video");
-          for (let i = 0; i < videos.length; i++) {
-            videos[i].style.position = "relative";
-          }
-          // 检测屏幕分享停止事件
-          this.localStream.on("player-state-changed", (event) => {
-            if (event.reason == "ended") {
-              console.log(123);
-              this.localStream.close();
-              this.localStream = null;
-              this.createStream(this.userId, 1);
-              setTimeout(() => {
-                this.swtichstatus(1);
-              }, 2000);
-            }
-          });
-        });
-    },
-    sharewindow1() {
-      this.$refs.share.style.pointerEvents = "none";
-      this.localStream.close();
-      this.localStream = null;
-      // 新建屏幕分享流
-      this.localStream = TRTC.createStream({
-        userId: this.userId,
-        audio: true,
-        screen: true,
-      });
-      this.localStream.setAudioProfile('high');
-      this.localStream
-        .initialize()
-        .catch((error) => {
-          console.log("初始化屏幕分享流失败", error);
-          this.createStream(this.userId, 1);
-          this.$refs.share.style.pointerEvents = "normal";
-        })
-        .then(() => {
-          console.log("初始化屏幕分享流成功");
-          this.localStream.play("streamlive2");
-          // setInterval(()=>{
-          //   this.localStream.
-          // })
-          setInterval(() => {
-            const volume = this.localStream.getAudioLevel();
-            if (volume > 0) {
-              console.log(`${this.localStream.getUserId()} is speaking`);
-            } else {
-              console.log('no speaking');
-            }
-          }, 1000);
-          const videos = document.getElementsByTagName("video");
-          for (let i = 0; i < videos.length; i++) {
-            videos[i].style.position = "relative";
-          }
-          // 检测屏幕分享停止事件
-          this.localStream.on("player-state-changed", (event) => {
-            if (event.reason == "ended") {
-              console.log(123);
-              this.localStream.close();
-              this.localStream = null;
-              this.$refs.share.style.pointerEvents = "normal";
-              this.createStream(this.userId, 1);
-              setTimeout(() => {
-                this.swtichstatus(1);
-              }, 2000);
-            }
-          });
-        });
-    },
-    // 本地移除课件
-    removeCourse() {
-      this.$confirm("此操作将移除该课件, 是否继续?", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          this.fileimglist = {
-            name: "",
-            list: [],
-          };
-          this.$message({
-            type: "success",
-            message: "移除成功!",
-          });
-        })
-        .catch(() => {
-          this.$message({
-            type: "info",
-            message: "已取消",
-          });
         });
     },
     // 切换设备状态
@@ -871,6 +632,245 @@ export default {
           break;
       }
     },
+    // 新建直播
+    reqStream() {
+      let params = {
+        info: JSON.stringify({
+          foreignKey: "1400380145",
+          commonId: this.roomId + "_" + this.userId + "_main",
+          beginTime: "2020-06-19 09:25:00",
+          endTime: "2020-06-19 21:25:00",
+          type: 4,
+          companyId: "255",
+          businessType: 10,
+          teachingAssistant: "18569548114",
+          source: "YILAN",
+          intro: "网页开播介绍",
+          name: "直播招聘",
+          thumbnail: "缩略图",
+        }),
+      };
+      this.$http
+        .post(this.$http.adornUrl("/live/insertInfoByUser", "proxyLl"), params)
+        .then((data) => {
+          if (data.code == 200) {
+            console.log("创建直播成功");
+            this.liveId = data.data.liveId;
+            // this.getchatlist();
+          } else {
+            console.log("创建直播");
+          }
+        });
+    },
+    // 获取聊天消息
+    getchatlist() {
+      setInterval(() => {
+        let params = {
+          info: JSON.stringify({ comId: this.comId, liveId: this.liveId }),
+        };
+        this.$http
+          .post(this.$http.adornUrl("comments/info", "proxyLl"), params)
+          .then((data) => {
+            if (data.code == 200) {
+              // let length = data.data.length;
+              if (data.data.length != 0) {
+                this.comId = data.data[data.data.length - 1].msgId;
+                this.chatlist.push(...data.data);
+                this.$nextTick(() => {
+                  let obj = document.getElementById("chats");
+                  obj.scrollTop = obj.scrollHeight;
+                });
+              }
+            } else {
+              console.log("获取失败");
+            }
+          });
+      }, 1000);
+    },
+    // 上传聊天消息
+    // uploadchat() {
+    //   if (!this.charword.length) {
+    //     return;
+    //   }
+    //   let params = {
+    //     info: JSON.stringify({
+    //       liveId: this.liveId,
+    //       comContent: this.charword,
+    //       userId: this.userId,
+    //       person_id: this.userForeignKey,
+    //     }),
+    //   };
+    //   this.$http
+    //     .post(this.$http.adornUrl("comments/insert", "proxyLl"), params)
+    //     .then((data) => {
+    //       if (data.code == 200) {
+    //         this.charword = "";
+    //       } else {
+    //         console.log("发表评论失败");
+    //       }
+    //     });
+    // },
+    // 上传课件之前
+    beforeUpload(file) {
+      const islt100M = file.size / 1024 / 1024 < 100;
+      return islt100M;
+    },
+    // 上传课件时提示
+    Uploading(event, file, fileList) {
+      this.loading = true;
+    },
+    // 上传文件相关函数
+    uploadSuccess(response, file, fileList) {
+      this.getfilelist();
+    },
+    // 展示上传课件弹窗
+    showdoclist() {
+      this.dialogTableVisible = true;
+      this.getfilelist();
+    },
+    // 打开课件
+    openClick(data) {
+      let params = {
+        fileId: data.id,
+        pageSize: 999,
+        liveId: this.liveId,
+      };
+      let filename = data.file_name;
+      this.$http
+        .post(this.$http.adornUrl("file/listImg", "proxyZx"), params)
+        .then((data) => {
+          if (data.code == 200) {
+            console.log(data);
+            this.fileimglist.name = filename;
+            this.fileimglist.list = data.data.list;
+            console.log(this.fileimglist);
+            this.swtichimg(0);
+            this.dialogTableVisible = false;
+            this.totalimg = data.data.total;
+          } else {
+            console.log("打开失败");
+          }
+        });
+    },
+    // 删除课件
+    delClick(data) {
+      this.$confirm("此操作将永久删除该课件, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          let params = {
+            fileIds: data.id,
+            liveId: this.liveId,
+          };
+          this.$http
+            .post(this.$http.adornUrl("file/delete", "proxyZx"), params)
+            .then((data) => {
+              if (data.code == 200) {
+                this.$message({
+                  type: "success",
+                  message: "删除成功!",
+                });
+                this.getfilelist();
+              }
+            });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除",
+          });
+        });
+    },
+    // 本地移除课件
+    removeCourse() {
+      this.$confirm("此操作将移除该课件, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          this.fileimglist = {
+            name: "",
+            list: [],
+          };
+          this.$message({
+            type: "success",
+            message: "移除成功!",
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消",
+          });
+        });
+    },
+    // 获取课件列表
+    getfilelist() {
+      this.loading = true;
+      let params = {
+        liveId: this.liveId,
+        pageNo: this.pageNo,
+        pageSize: this.pageSize,
+      };
+      this.$http
+        .post(this.$http.adornUrl("file/list", "proxyZx"), params)
+        .then((data) => {
+          if (data.code == 200) {
+            console.log(data);
+            this.filelist = data.data.list;
+            this.loading = false;
+          } else {
+            console.log("error失败");
+          }
+        });
+    },
+    // 往画布里面添加图片
+    addimg() {
+      let myCanvas = document.getElementById("myCanvas");
+      console.log(myCanvas);
+      var context = myCanvas.getContext("2d");
+      // 创建一个图片标签
+      let img = document.createElement("img");
+      console.log(this.currentimg);
+
+      img.src = this.currentimg;
+      console.log(this.currentimg);
+
+      img.onload = function() {
+        context.drawImage(this, 0, 0, 800, 450);
+        // context.drawImage(this, 0, 0, 1080, 980)改变图片大小到1080*980
+      };
+
+      // 采用云端混合
+    },
+    // 开播时间计时器
+    jishi() {
+      this.sec++;
+      if (this.sec >= 60) {
+        this.sec = 0;
+        this.min = this.min + 1;
+        this.second = this.sec;
+        this.minute = this.min;
+      } else if (this.sec < 10) {
+        this.second = "0" + this.sec;
+      } else {
+        this.second = this.sec;
+      }
+
+      if (this.min >= 60) {
+        this.min = 0;
+        this.hours = this.hours + 1;
+        this.minute = this.min;
+        this.hour = this.hours;
+      } else if (this.min < 10) {
+        this.minute = "0" + this.min;
+      } else {
+        this.minute = this.min;
+      }
+    },
     // 下拉屏幕变大
     xiala(flag) {
       // this.isxiala = flag ? true : false;
@@ -894,11 +894,6 @@ export default {
       });
       this.isfullScreen = !this.isfullScreen;
     },
-    // 互换操作
-    // exchange() {
-    //   //将两个id的内容互换
-    //   // console.log(this.$refs.streamlive1);
-    // },
     swtichimg(index) {
       let boxWidth = document.getElementById("imglist").offsetWidth / 2;
       if (index == 0) {
@@ -940,115 +935,6 @@ export default {
         return;
       }
       this.swtichimg(index + 1);
-    },
-    // 切换开播状态
-    // 计时器
-    jishi() {
-      this.sec++;
-      if (this.sec >= 60) {
-        this.sec = 0;
-        this.min = this.min + 1;
-        this.second = this.sec;
-        this.minute = this.min;
-      } else if (this.sec < 10) {
-        this.second = "0" + this.sec;
-      } else {
-        this.second = this.sec;
-      }
-
-      if (this.min >= 60) {
-        this.min = 0;
-        this.hours = this.hours + 1;
-        this.minute = this.min;
-        this.hour = this.hours;
-      } else if (this.min < 10) {
-        this.minute = "0" + this.min;
-      } else {
-        this.minute = this.min;
-      }
-    },
-    swtichstatus(flag) {
-      if (!flag) {
-        this.beginlive = !this.beginlive;
-      }
-      if (this.beginlive) {
-        this.publishStream(this.localStream, this.client);
-        this.timerId = setInterval(this.jishi, 1000);
-      } else {
-        // 取消发布本地流
-        this.$confirm("是否停止直播?", "提示", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-        })
-          .then(() => {
-            clearInterval(this.timerId);
-            this.unpublish();
-            this.$message({
-              type: "success",
-              message: "直播已经停止!",
-            });
-          })
-          .catch(() => {
-            this.beginlive = !this.beginlive;
-            this.$message({
-              type: "info",
-              message: "已取消",
-            });
-          });
-      }
-    },
-    // 上传课件之前
-    beforeUpload(file) {
-      const islt100M = file.size / 1024 / 1024 < 100;
-      return islt100M;
-    },
-    // 上传课件时提示
-    Uploading(event, file, fileList) {
-      this.loading = true;
-    },
-    // 上传文件相关函数
-    uploadSuccess(response, file, fileList) {
-      this.getfilelist();
-    },
-    // 获取课件列表
-    getfilelist() {
-      this.loading = true;
-      let params = {
-        liveId: this.liveId,
-        pageNo: this.pageNo,
-        pageSize: this.pageSize,
-      };
-      this.$http
-        .post(this.$http.adornUrl("file/list", "proxyZx"), params)
-        .then((data) => {
-          if (data.code == 200) {
-            console.log(data);
-            this.filelist = data.data.list;
-            this.loading = false;
-          } else {
-            console.log("error失败");
-          }
-        });
-    },
-    // 往画布里面添加图片
-    addimg() {
-      let myCanvas = document.getElementById("myCanvas");
-      console.log(myCanvas);
-      var context = myCanvas.getContext("2d");
-      // 创建一个图片标签
-      let img = document.createElement("img");
-      console.log(this.currentimg);
-
-      img.src = this.currentimg;
-      console.log(this.currentimg);
-
-      img.onload = function() {
-        context.drawImage(this, 0, 0, 800, 450);
-        // context.drawImage(this, 0, 0, 1080, 980)改变图片大小到1080*980
-      };
-
-      // 采用云端混合
     },
   },
 };
