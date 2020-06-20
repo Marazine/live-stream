@@ -279,7 +279,7 @@ service.adornUrl = (actionName, who) => {
                 url = "webservice/live_video/index.jsp/v1/sys/";
                 // url = "webservice/live_video/index.jsp/v1/sys/";
 
-                break;
+                break;      
 
             default:
 

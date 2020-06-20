@@ -1,9 +1,9 @@
 <template>
   <div class="login" ref="login">
     <div class="loginform" v-if="islogin">
-      <img src="../assets/logo.png" alt />
+      <img src="../assets/一览logo头像.png" alt />
       <div class="logininfo">
-        <span class="title">直播(三分屏)</span>
+        <span class="title">{{liveInfo.liveName}}</span>
         <div class="inputform" :class="{ error1: errorname, error2: errorpsd }">
           <input
             ref="nickname"
@@ -27,7 +27,7 @@
       </div>
     </div>
     <div class="inspection" v-if="!islogin">
-      <inspect></inspect>
+      <inspect :liveInfo='liveInfo'></inspect>
     </div>
   </div>
 </template>
@@ -37,12 +37,13 @@ export default {
   data() {
     return {
       screenHeight: window.innerHeight,
-      roomId: "10000",
-      password: "123456",
+      roomId: this.$route.query.roomId || "36959429",
+      password: "G6C757",
       islogin: true,
       isInput: 1,
       errorname: false,
       errorpsd: false,
+      liveInfo: {},
     };
   },
   components: {
@@ -50,6 +51,8 @@ export default {
   },
   mounted() {
     this.initStyle();
+    // 获取该场直播信息
+    this.getliveInfo();
   },
   watch: {
     screenHeight(val) {
@@ -60,6 +63,7 @@ export default {
   methods: {
     // 设置视图大小
     initStyle() {
+      console.log(this.roomId);
       const windowHeight =
         document.documentElement.clientHeight || document.body.clientHeight;
       this.$refs.login.style.height = windowHeight + "px";
@@ -71,8 +75,16 @@ export default {
         })();
       };
     },
-    // TODO 点击输入框底部变色
     // 点击登录
+    getliveInfo(){
+      let params = {
+        roomId: this.roomId
+      }
+      this.$http.post(this.$http.adornUrl('/live/getInfoByRoomId','proxyLl'),params).then((data)=>{
+        console.log(data);
+        this.liveInfo = data.data;
+      })
+    },
     login() {
       if (this.nickname == "") {
         this.errorname = true;
@@ -107,7 +119,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: url("../assets/background-new.7c18b9d2.jpg") no-repeat center
+  background: url("../assets/背景图.png") no-repeat center
     center;
   .loginform {
     height: 380px;

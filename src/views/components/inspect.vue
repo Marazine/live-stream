@@ -137,8 +137,14 @@
           </el-table-column>
           <el-table-column prop="result" label="检测结果">
             <template slot-scope="scope">
-              <span v-if="scope.row.success">正常</span>
-              <span v-else class="error">异常</span>
+              <span v-if="scope.row.success"
+                >正常
+                <i class="el-icon-circle-check"></i>
+              </span>
+              <span v-else class="error"
+                >异常
+                <i class="el-icon-warning-outline"></i>
+              </span>
             </template>
           </el-table-column>
         </el-table>
@@ -247,6 +253,7 @@ export default {
     this.initVido();
     this.begin();
   },
+  props: ["liveInfo"],
   methods: {
     initVido() {
       let userId = this.userId;
@@ -321,8 +328,10 @@ export default {
             this.$router.push({
               name: "live",
               params: {
-                roomId: "1234",
-                userId: "1244",
+                roomId: this.liveInfo.roomId,
+                userId: this.liveInfo.userId,
+                liveId: this.liveInfo.liveId,
+                liveName: this.liveInfo.liveName,
               },
             });
           } else {
@@ -400,7 +409,7 @@ export default {
         .then(() => {
           console.log("初始化本地流成功");
           localStream.play("mkfstream");
-         this.timeId =  setInterval(() => {
+          this.timeId = setInterval(() => {
             // 从麦克风和摄像头采集本地音视频流
             const volume = localStream.getAudioLevel();
             // 获取比例，向上取整
@@ -463,7 +472,7 @@ export default {
 
 <style lang="less" scoped>
 .inspect {
-  width: 560px;
+  width: 600px;
   height: 370px;
   background-color: #ffffff;
   .top {
@@ -474,7 +483,7 @@ export default {
     ul {
       height: 100%;
       display: flex;
-      justify-content: space-between;
+      justify-content: space-around;
       align-items: center;
       color: #ffffff;
       li {
@@ -499,7 +508,7 @@ export default {
             bottom: 0;
           }
           .el-icon-circle-check {
-            color: #366bee;
+            color: #00ff00;
           }
           .el-icon-warning-outline {
             color: rgb(255, 76, 77);
@@ -512,6 +521,14 @@ export default {
           margin-top: 6px;
           font-size: 12px;
         }
+      }
+      li:after {
+        height: 1px;
+        width: 20px;
+        // border: ;
+      }
+      li:last-child:after {
+        display: none;
       }
     }
   }
@@ -690,6 +707,12 @@ export default {
   }
   .cell {
     text-align: center;
+    .el-icon-circle-check {
+      color: #00ff00;
+    }
+    .el-icon-warning-outline {
+      color: rgb(255, 76, 77);
+    }
   }
   .error {
     color: rgb(255, 76, 77);
