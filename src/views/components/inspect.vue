@@ -86,7 +86,7 @@
           <span>{{ playtip }}</span>
         </div>
         <audio
-          src="../../assets/inspect/5aa7a82a252bb.mp3"
+          src="../../assets/inspect/05_爱给网_aigei_com.wav"
           id="buttonAudio"
           @ended="playend"
         ></audio>
@@ -253,7 +253,6 @@ export default {
     this.initVido();
     this.begin();
   },
-  props: ["liveInfo"],
   methods: {
     initVido() {
       let userId = this.userId;
@@ -266,6 +265,27 @@ export default {
         .initialize()
         .catch((error) => {
           console.error("初始化本地流失败 " + error);
+          switch (error.name) {
+            case "NotFoundError":
+              this.$message.warning("未搜索到摄像头设备，请重试");
+              break;
+            case "NotAllowedError":
+              this.$message.warning("您当前未授权摄像头");
+              break;
+            case "NotReadableError":
+              this.$message.warning(
+                "暂时无法访问摄像头，请确保当前没有其他应用请求访问摄像头/麦克风，并重试"
+              );
+              break;
+            case "OverConstrainedError":
+              this.$message.warning("摄像头获取失败，请重试");
+              break;
+            case "AbortError":
+              this.$message.warning("出现未知错误");
+              break;
+            default:
+              break;
+          }
         })
         .then(() => {
           console.log("初始化本地流成功");
@@ -296,6 +316,19 @@ export default {
           break;
         case 1:
           this.stepactive = 2;
+          this.localStream = TRTC.createStream({
+            userId: this.userId,
+            audio: true,
+            video: true,
+          });
+          this.localStream
+            .initialize()
+            .catch((error) => {
+              console.error("初始化本地流失败 " + error);
+            })
+            .then(() => {
+              console.log("初始化本地流成功");
+            });
           this.initmkf();
           this.$set(this.stepobj, index, {
             isspect: false,
@@ -325,14 +358,15 @@ export default {
           clearInterval(this.timeId);
           if (!flag) {
             // 去直播
+            let inspectData = JSON.stringify({
+              audio: this.stepobj[2].success,
+              video: this.stepobj[0].success,
+              speaker: this.stepobj[1].success,
+            });
+            window.sessionStorage.setItem("inspectInfo", inspectData);
+            this.localStream.close();
             this.$router.push({
               name: "live",
-              params: {
-                roomId: this.liveInfo.roomId,
-                userId: this.liveInfo.userId,
-                liveId: this.liveInfo.liveId,
-                liveName: this.liveInfo.liveName,
-              },
             });
           } else {
             // 重新检测
@@ -439,6 +473,10 @@ export default {
     },
     // 重新检测
     reinspect() {
+      // 清空设备列表
+      this.cameraslist = [];
+      this.mkflist = [];
+      this.begin();
       this.leftbtntext = "可以看到";
       this.rightbtntext = "看不到";
       this.stepactive = 0;
@@ -464,7 +502,7 @@ export default {
     },
     playend() {
       this.playstatus = !this.playstatus;
-      this.playtip = "暂停播放音频";
+      this.playtip = "点击播放音频";
     },
   },
 };
@@ -694,7 +732,6 @@ export default {
   }
 }
 </style>
-
 <style lang="less">
 .inspect {
   .el-icon-arrow-down {

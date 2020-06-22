@@ -116,7 +116,7 @@ service.get = (url, data = {}) => {
 
             url: url,
 
-            method: 'get',
+            methods: 'get',
 
             params: data
 
@@ -194,7 +194,7 @@ service.patch = (url, data = {}) => {
 
             url: url,
 
-            method: 'patch',
+            methods: 'patch',
 
             data: data
 
@@ -228,7 +228,7 @@ service.put = (url, data = {}) => {
 
             url: url,
 
-            method: 'put',
+            methods: 'put',
 
             data
 
@@ -293,9 +293,8 @@ service.adornUrl = (actionName, who) => {
 
     return (
 
-        (process.env.NODE_ENV !== "production" ?
-
-            (proxyApi + url) : '') + actionName + token
+        (process.env.NODE_ENV !== "production" ? proxyApi : '')  
+        + url+ actionName + token
 
     );
 

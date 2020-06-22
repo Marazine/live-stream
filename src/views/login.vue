@@ -1,14 +1,14 @@
 <template>
   <div class="login" ref="login">
     <div class="loginform" v-if="islogin">
-      <img src="../assets/一览logo头像.png" alt />
+      <img src="../assets/一览logo.png" alt />
       <div class="logininfo">
         <span class="title">{{liveInfo.liveName}}</span>
         <div class="inputform" :class="{ error1: errorname, error2: errorpsd }">
           <input
             ref="nickname"
             type="text"
-            v-model="roomId"
+            v-model.trim="roomId"
             placeholder="请输入房间号"
             :class="{ active: isInput === 1 }"
             @focus="isInput = 1"
@@ -16,7 +16,7 @@
           <input
             ref="password"
             type="password"
-            v-model="password"
+            v-model.trim="password"
             placeholder="请输入密码"
             :class="{ active: isInput === 2 }"
             @focus="isInput = 2"
@@ -27,7 +27,7 @@
       </div>
     </div>
     <div class="inspection" v-if="!islogin">
-      <inspect :liveInfo='liveInfo'></inspect>
+      <inspect></inspect>
     </div>
   </div>
 </template>
@@ -37,8 +37,8 @@ export default {
   data() {
     return {
       screenHeight: window.innerHeight,
-      roomId: this.$route.query.roomId || "36959429",
-      password: "G6C757",
+      roomId: this.$route.query.roomId,
+      password: "",
       islogin: true,
       isInput: 1,
       errorname: false,
@@ -83,6 +83,8 @@ export default {
       this.$http.post(this.$http.adornUrl('/live/getInfoByRoomId','proxyLl'),params).then((data)=>{
         console.log(data);
         this.liveInfo = data.data;
+        let livedata = JSON.stringify(data.data);
+        window.sessionStorage.setItem('liveInfo',livedata);
       })
     },
     login() {
@@ -119,19 +121,19 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: url("../assets/背景图.png") no-repeat center
-    center;
+  background: url("../assets/背景图.png");
+     background-size: 100% 100%;
   .loginform {
-    height: 380px;
+    height: 400px;
     width: 340px;
     background-color: rgba(0, 0, 0, 0.7);
     box-sizing: border-box;
     text-align: center;
     img {
-      height: 96px;
-      width: 96px;
-      border-radius: 48px;
-      margin: 4px 0 8px;
+      height: 88px;
+      width: 88px;
+      border-radius: 44px;
+      margin: 28px 0 8px;
     }
     .logininfo {
       display: flex;
@@ -141,8 +143,10 @@ export default {
         font-size: 16px;
       }
       .tips {
+        display: block;
         font-size: 12px;
         color: #818d9f;
+        margin-bottom: 32px;
       }
     }
   }
@@ -187,7 +191,7 @@ export default {
       height: 48px;
       color: #fff;
       cursor: pointer;
-      margin: 30px 0;
+      margin: 30px 0 20px;
       font-size: 16px;
       border-radius: 0;
     }

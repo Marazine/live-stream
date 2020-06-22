@@ -56,17 +56,12 @@
             ref="streamlive1
           "
           >
-            <div class="beforeadd" v-show="fileimglist.list.length == 0">
-              <!-- <img src="../assets/live/添加文档.png" alt /> -->
-              <button @click.prevent="showdoclist">添加文档</button>
-              <span>或点击左下角添加文档</span>
+            <div class="beforeadd" v-if="fileimglist.list.length == 0">
+              <img src="../assets/live/添加文档.png" alt />
+              <button @click.prevent="showdoclist">添加课件</button>
+              <span>或点击左下角添加课件</span>
             </div>
-            <canvas
-              v-show="!fileimglist.list.length == 0"
-              id="myCanvas"
-              width="800"
-              height="450"
-            ></canvas>
+            <img class="imgwindow" v-else :src="currentimg" alt="" />
           </div>
           <div class="footer" ref="footer">
             <div class="options">
@@ -171,7 +166,7 @@
             <div class="adddoc" ref="adddoc">
               <div class="addbtn" @click.prevent="showdoclist">
                 <i class="el-icon-plus"></i>
-                <span>添加文档</span>
+                <span>添加课件</span>
               </div>
               <div class="doclist" id="imglist">
                 <div class="imglist clearfix">
@@ -267,7 +262,7 @@
               </li>
             </ul>
           </div>
-          <!-- <div class="footer">
+          <!-- < class="footer">
             <div></div>
             <div>
               <textarea
@@ -282,7 +277,10 @@
                 <button type="button" @click="uploadchat">发送</button>
               </div>
             </div>
-          </div> -->
+          </ div> -->
+          <div class="chattip">
+            当前聊天室暂不支持讲师发言
+          </div>
         </div>
       </div>
     </div>
@@ -295,7 +293,7 @@
       <div class="option">
         <div>
           <el-upload
-            action="http://zhibotest.yl1001.com/webservice/live_video/index.jsp/v1/sys/file/add?token=dXNlcj1saXZlX3ZpZGVvJnB3ZD1saXZlX3ZpZGVvX2RhdGFfam9iMTAwMQ=="
+            action="//zhibotest.yl1001.com/webservice/live_video/index.jsp/v1/sys/file/add?token=dXNlcj1saXZlX3ZpZGVvJnB3ZD1saXZlX3ZpZGVvX2RhdGFfam9iMTAwMQ=="
             :limit="1"
             :show-file-list="false"
             accept=".ppt, .pptx, .pdf,.word,.doc,.docx"
@@ -376,9 +374,10 @@ import LibGenerateTestUserSig from "../utils/lib-generate-test-usersig.min.js";
 export default {
   data() {
     return {
-      roomId: this.$route.params.roomId || "1114",
-      userId: this.$route.params.userId || "1114",
-      liveName: this.$route.params.liveName,
+      roomId: "",
+      userId: "",
+      liveName: "",
+      liveId: "", // 直播Id
       input: "", // 聊天框文字
       client: "", // 客户端服务
       remoteStream: "", // 远方播放流
@@ -397,7 +396,6 @@ export default {
       isxiala: false, // 下拉状态
       isfullScreen: false, // 全屏状态
       // charword: "",
-      liveId: this.$route.params.liveId, // 直播Id
       comId: 0, // 聊天最后一条消息的Id
       chatlist: [], // 消息列表
       userForeignKey: "21908338", // 评论ID
@@ -423,7 +421,20 @@ export default {
       min: 0,
       hours: 0,
       isshowScreen: false,
+      // 是否已经退出房间
+      isjoinroom: true,
+      ishavaStream: false, // 是否发布
+      inspectInfo: {}, // 前面检测结果
     };
+  },
+  created() {
+    let liveInfo = JSON.parse(window.sessionStorage.getItem("liveInfo"));
+    this.roomId = liveInfo.roomId;
+    this.userId = liveInfo.userId;
+    this.liveName = liveInfo.liveName;
+    this.liveId = liveInfo.liveId;
+    console.log(this.roomId,this.userId,this.liveName,this.liveId);
+    this.inspectInfo = JSON.parse(window.sessionStorage.getItem("inspectInfo"));
   },
   mounted() {
     this.initStyle();
@@ -444,7 +455,7 @@ export default {
         document.documentElement.clientHeight || document.body.clientHeight;
       this.$refs.leftwindow.style.height = windowHeight + "px";
       this.$refs.rightwindow.style.height = windowHeight + "px";
-      this.$refs.chats.style.height = windowHeight - 168 - 32 + "px";
+      this.$refs.chats.style.height = windowHeight - 168 - 32 - 30 + "px";
     },
     // 获取userSig和sdkAppId
     genTestUserSig(userID) {
@@ -477,11 +488,14 @@ export default {
         userId: this.userId,
         userSig: userSig,
       });
+      console.log(this.userId,this.roomId);
+      
       // 初始化之后加入房间
-      this.joinRoom(this.client, this.roomId);
+      this.joinRoom(this.client, this.roomId,1);
+      this.getchatlist();
     },
     // 加入房间
-    joinRoom(client, roomId) {
+    joinRoom(client, roomId,flag) {
       client
         .join({ roomId })
         .catch((error) => {
@@ -489,16 +503,21 @@ export default {
         })
         .then(() => {
           console.log("进房成功");
-          this.getchatlist();
-          this.createStream(this.userId, this.playStream);
+          this.isjoinroom = true;
+          if(flag) {
+            this.createStream(this.userId);
+          }
         });
     },
     // 音频流创建
     createStream(userId) {
+      if (!this.isjoinroom) {
+        this.joinRoom(this.client, this.roomId);
+      }
       this.localStream = TRTC.createStream({
         userId,
         audio: true,
-        video: true,
+        video: this.inspectInfo.video,
       });
       this.localStream.setVideoProfile({
         width: 1280, // 视频宽度
@@ -518,6 +537,9 @@ export default {
     },
     // 屏幕分享流创建
     createScreenStream(userId) {
+      if (!this.isjoinroom) {
+        this.joinRoom(this.client, this.roomId);
+      }
       this.showmodel = 2;
       this.localStream = TRTC.createStream({
         userId,
@@ -563,9 +585,16 @@ export default {
     },
     // 开播
     showLive() {
+      // 判断当前流是否已经准备，未准备就创建一个音视频流
+      // TODO 设置用户不可点击 三到五秒
+      if (!this.isjoinroom) {
+        this.joinRoom(this.client, this.roomId);
+      }
       this.beginlive = true;
       // 发布本地流
-      this.PublishStream(this.localStream, this.client);
+      setTimeout(() => {
+        this.PublishStream(this.localStream, this.client);
+      }, 1000);
     },
     // 下播
     downLive() {
@@ -585,6 +614,8 @@ export default {
         type: "warning",
       })
         .then(() => {
+          // 退出房间，设置一个标识符
+          this.isjoinroom = false;
           this.$message({
             type: "success",
             message: "直播已经停止!",
@@ -592,12 +623,14 @@ export default {
           this.client
             .leave()
             .then(() => {
-              // leaving room success
+              console.log("退出房间成功");
+              this.isjoinroom = false;
             })
             .catch((error) => {
               console.error("leaving room failed: " + error);
             });
           this.beginlive = false;
+          this.isshowScreen = false;
           this.unPublishStream();
           clearInterval(this.timerId);
         })
@@ -631,6 +664,7 @@ export default {
     unPublishStream() {
       this.client.unpublish(this.localStream).then(() => {
         console.log("本地流取消发布成功");
+        this.ishavaStream = false;
       });
     },
     // 播放本地流
@@ -653,6 +687,7 @@ export default {
           clearInterval(this.timerId);
           console.log("本地流发布成功");
           this.jishi();
+          this.ishavaStream = true;
         });
     },
     // 退出音视频流
@@ -734,7 +769,7 @@ export default {
     },
     // 上传课件之前
     beforeUpload(file) {
-      const islt100M = file.size / 1024 / 1024 < 100;
+      const islt100M = file.size / 1024 / 1024 < 50;
       return islt100M;
     },
     // 上传课件时提示
@@ -845,28 +880,9 @@ export default {
             this.filelist = data.data.list;
             this.loading = false;
           } else {
-            console.log("error失败");
+            console.log("获取课件失败");
           }
         });
-    },
-    // 往画布里面添加图片
-    addimg() {
-      let myCanvas = document.getElementById("myCanvas");
-      console.log(myCanvas);
-      var context = myCanvas.getContext("2d");
-      // 创建一个图片标签
-      let img = document.createElement("img");
-      console.log(this.currentimg);
-
-      img.src = this.currentimg;
-      console.log(this.currentimg);
-
-      img.onload = function() {
-        context.drawImage(this, 0, 0, 800, 450);
-        // context.drawImage(this, 0, 0, 1080, 980)改变图片大小到1080*980
-      };
-
-      // 采用云端混合
     },
     // 开播时间计时器
     jishi() {
@@ -924,7 +940,6 @@ export default {
         this.clicked = index;
         this.currentimg = this.fileimglist.list[index].image_url;
         this.currentindex = index;
-        this.addimg();
         return;
       }
       let id = "img" + (index - 1);
@@ -935,8 +950,6 @@ export default {
         document.getElementsByClassName("doclist")[0].scrollLeft = 0;
         this.currentimg = this.fileimglist.list[index].image_url;
         this.currentindex = index;
-        this.addimg();
-
         return;
       }
       let scrol = ofl - boxWidth;
@@ -945,7 +958,6 @@ export default {
       this.clicked = index;
       this.currentimg = this.fileimglist.list[index].image_url;
       this.currentindex = index;
-      this.addimg();
     },
     prevClick(index) {
       if (index == 0) {
@@ -1096,6 +1108,11 @@ export default {
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            img {
+              width: 132px;
+              height: 128px;
+              margin-bottom: 20px;
+            }
             button {
               width: 160px;
               height: 40px;
@@ -1116,18 +1133,9 @@ export default {
             }
           }
           .imgwindow {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            #myCanvas {
-            }
+            width: 90%;
+            height: 400px;
           }
-        }
-        #streamlive2 {
-          flex: 1;
-          width: 100%;
         }
         .footer {
           margin-right: -1px;
@@ -1507,6 +1515,14 @@ export default {
           ul::-webkit-scrollbar-corner {
             background: #179a16;
           }
+        }
+        .chattip {
+          height: 30px;
+          text-align: center;
+          line-height: 30px;
+          color: #ccc;
+          background: #179a16;
+          font-size: 12px;
         }
         .footer {
           height: 150px;

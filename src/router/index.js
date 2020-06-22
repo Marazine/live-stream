@@ -11,6 +11,7 @@ common.keys().forEach((key) => {
   const routes = [
   {
     path: '/',
+    name: 'login',
     component:() =>
     import ('../views/login'),
   },
