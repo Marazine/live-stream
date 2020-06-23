@@ -80,9 +80,10 @@ export default {
       let params = {
         roomId: this.roomId
       }
-      this.$http.post(this.$http.adornUrl('/live/getInfoByRoomId','proxyLl'),params).then((data)=>{
+      this.$http.post(this.$http.adornUrl('live/getInfoByRoomId','proxyLl'),params).then((data)=>{
         console.log(data);
         this.liveInfo = data.data;
+              document.title = this.liveInfo.liveName;
         let livedata = JSON.stringify(data.data);
         window.sessionStorage.setItem('liveInfo',livedata);
       })

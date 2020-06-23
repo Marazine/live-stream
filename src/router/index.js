@@ -32,7 +32,7 @@ common.keys().forEach((key) => {
 ]
 
 const router = new VueRouter({
-  mode: 'history',
+  // mode: 'history',
   // base: process.env.BASE_URL,
   routes
 })

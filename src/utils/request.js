@@ -258,7 +258,7 @@ service.adornUrl = (actionName, who) => {
 
     var url = '';
 
-    var token = "?token=dXNlciUzRGxpdmVfdmlkZW8lMjZwd2QlM0RsaXZlX3ZpZGVvX2RhdGFfam9iMTAwMQ";
+    var token = "?token=dXNlciUzRGxpdmVfdmlkZW8lMjZwd2QlM0RsaXZlX3ZpZGVvX2RhdGFfam9iMTAwMQ==";
 
     if (who) {
 
@@ -268,7 +268,7 @@ service.adornUrl = (actionName, who) => {
 
                 proxyApi = "/proxyLl";
 
-                url = "webservice/live_video/index.jsp/v1/sys/";
+                url = "/webservice/live_video/index.jsp/v1/sys/";
 
                 break;
 
@@ -276,7 +276,7 @@ service.adornUrl = (actionName, who) => {
 
                 proxyApi = "/proxyZx";
 
-                url = "webservice/live_video/index.jsp/v1/sys/";
+                url = "/webservice/live_video/index.jsp/v1/sys/";
                 // url = "webservice/live_video/index.jsp/v1/sys/";
 
                 break;      

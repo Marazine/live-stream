@@ -6,6 +6,7 @@ import './styles/normalize.less'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 Vue.use(ElementUI)
+// document.title=""
 
 import httpRequset from './utils/request.js'
 //定义全局变量
