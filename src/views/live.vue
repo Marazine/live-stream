@@ -198,12 +198,19 @@
           <span>
             <img v-if="deviceStatus.voice" src="../assets/live/声音.png" alt />
             <img v-else src="../assets/live/静音.png" alt />
+            <!-- <img v-show="" src="../assets/live/麦克风.png" alt=""> -->
             <img
               v-if="deviceStatus.Microphone"
-              src="../assets/live/麦克风.png"
+              v-show="ishavavolume"
+              src="../assets/live/maikefeng_jianghua.gif"
               alt
             />
             <img v-else src="../assets/live/关闭话筒.png" alt />
+            <img
+              v-show="!ishavavolume"
+              src="../assets/live/麦克风.png"
+              alt=""
+            />
           </span>
         </div>
         <div v-show="islive && ishover" class="swtich">
@@ -279,7 +286,7 @@
             </div>
           </ div> -->
           <div class="chattip">
-            当前聊天室暂不支持讲师发言
+            讲师可在聊天室观看实时评论
           </div>
         </div>
       </div>
@@ -312,7 +319,7 @@
         </div>
         <span class="tooltip" v-show="istishi">
           <span>* 仅支持ppt、pptx、pdf、word、doc、docx</span>
-          <span>* 上传课件大小不能超过100MB</span>
+          <span>* 上传课件大小不能超过50MB</span>
         </span>
         <div>
           <img
@@ -338,9 +345,14 @@
               <div>{{ scope.row.file_name }}</div>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="上传状态" width="100"
-            >成功</el-table-column
-          >
+          <el-table-column prop="status" label="上传状态" width="100">
+            <template slot-scope="scope">
+              <span v-if="!scope.row.file_url" style="color:#179a16"
+                >解析中...</span
+              >
+              <span v-else>成功</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="date" label="上传时间" width="100">
             <template slot-scope="scope">
               {{ scope.row.add_time }}
@@ -348,7 +360,7 @@
           </el-table-column>
           <el-table-column prop="option" label="操作">
             <template slot-scope="scope">
-              <div>
+              <div v-if="!scope.row.file_url">
                 <span style="cursor: pointer;" @click="openClick(scope.row)"
                   >打开课件</span
                 >
@@ -357,6 +369,9 @@
                   class="el-icon-delete"
                   @click="delClick(scope.row)"
                 ></i>
+              </div>
+              <div v-else>
+                <span>暂不可操作</span>
               </div>
             </template>
           </el-table-column>
@@ -425,6 +440,9 @@ export default {
       ishavaStream: false, // 是否发布
       inspectInfo: {}, // 前面检测结果
       iserrorClick: true,
+      ishavavolume: null,
+      videoTimeId: null,
+      ishaveuploading: null,
     };
   },
   created() {
@@ -523,13 +541,18 @@ export default {
     },
     // 音频流创建
     createStream(userId) {
+      clearInterval(this.videoTimeId);
       if (!this.isjoinroom) {
         this.joinRoom(this.client, this.roomId);
       }
+      let cameraId = window.sessionStorage.getItem("cameraId");
+      let microphoneId = window.sessionStorage.getItem("audioId");
       this.localStream = TRTC.createStream({
         userId,
         audio: true,
         video: this.inspectInfo.video,
+        cameraId,
+        microphoneId,
       });
       this.localStream.setVideoProfile({
         width: 1280, // 视频宽度
@@ -541,23 +564,33 @@ export default {
         .initialize()
         .catch((error) => {
           console.log("初始化音频流失败", error);
+          this.$message.warning('您的设备出现异常,请重新登录');
         })
         .then(() => {
           console.log("初始化音频流成功");
+          this.videoTimeId = setInterval(() => {
+            const volume = this.localStream.getAudioLevel();
+            if (volume > 0) {
+              this.ishavavolume = true;
+            }
+          }, 500);
           this.playStream();
         });
     },
     // 屏幕分享流创建
     createScreenStream(userId) {
+      clearInterval(this.videoTimeId);
       if (!this.isjoinroom) {
         this.joinRoom(this.client, this.roomId);
       }
-      this.showmodel = 2;
+      let microphoneId = window.sessionStorage.getItem("audioId");
       this.localStream = TRTC.createStream({
         userId,
         audio: true,
         screen: true,
+        microphoneId,
       });
+      this.showmodel = 2;
       this.localStream.setScreenProfile({
         width: 1280,
         height: 720,
@@ -571,6 +604,12 @@ export default {
         .initialize()
         .then(() => {
           console.log("初始化屏幕分享流成功");
+          this.videoTimeId = setInterval(() => {
+            const volume = this.localStream.getAudioLevel();
+            if (volume > 0) {
+              this.ishavavolume = true;
+            }
+          }, 500);
           this.playStream();
           // 检测屏幕分享停止事件
           this.localStream.on("player-state-changed", (event) => {});
@@ -579,6 +618,7 @@ export default {
             this.showmodel = 1;
             if (this.beginlive) {
               this.unPublishStream();
+              this.destructionStream();
             }
             setTimeout(() => {
               this.createStream(this.userId);
@@ -606,7 +646,6 @@ export default {
         this.joinRoom(this.client, this.roomId);
         setTimeout(() => {
           this.PublishStream(this.localStream, this.client);
-          this.beginlive = true;
         }, 2000);
         setTimeout(() => {
           this.iserrorClick = true;
@@ -719,11 +758,13 @@ export default {
         .then(() => {
           clearInterval(this.timerId);
           console.log("本地流发布成功");
+          this.beginlive = true;
           this.jishi();
           this.ishavaStream = true;
         })
         .catch((error) => {
           console.log("本地流发布失败", error);
+          this.$message.warning("您当前网络状态不佳,请刷新页面后重新上课");
           // this.PublishStream(this.localStream,this.client);
         });
     },
@@ -806,6 +847,10 @@ export default {
     },
     // 上传课件之前
     beforeUpload(file) {
+      if (this.filelist.length >= 5) {
+        this.$message.warning("请不要上传过多的课件");
+        return false;
+      }
       const islt100M = file.size / 1024 / 1024 < 50;
       return islt100M;
     },
@@ -815,7 +860,32 @@ export default {
     },
     // 上传文件相关函数
     uploadSuccess(response, file, fileList) {
-      this.getfilelist();
+      console.log(response);
+      this.ishaveuploading = setInterval(() => {
+        // 在这里发送一个请求，请求里面判断
+        this.$http
+          .post(this.$http.adornUrl("file/list", "proxyZx"), {
+            liveId: this.liveId,
+            pageNo: this.pageNo,
+            pageSize: this.pageSize,
+          })
+          .then((data) => {
+            if (data.code == 200) {
+              console.log(data);
+              this.filelist = data.data.list;
+              this.loading = false;
+              let bol = data.data.list.every((item) => {
+                return item.file_url != "";
+              });
+              if (bol) {
+                clearInterval(this.ishaveuploading);
+                console.log(1234);
+              }
+            } else {
+              console.log("获取课件失败");
+            }
+          });
+      }, 5000);
     },
     // 展示上传课件弹窗
     showdoclist() {
@@ -911,6 +981,7 @@ export default {
         .post(this.$http.adornUrl("file/list", "proxyZx"), params)
         .then((data) => {
           if (data.code == 200) {
+            console.log(data);
             this.filelist = data.data.list;
             this.loading = false;
           } else {
@@ -1548,8 +1619,8 @@ export default {
           height: 24px;
           text-align: center;
           line-height: 24px;
-          color: #ccc;
-          background: #e33e3e;
+          color: #fff;
+          background: rgb(62, 62, 78);
           font-size: 12px;
         }
         .footer {

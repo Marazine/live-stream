@@ -3,7 +3,7 @@
     <div class="loginform" v-if="islogin">
       <img src="../assets/一览logo.png" alt />
       <div class="logininfo">
-        <span class="title">{{liveInfo.liveName}}</span>
+        <span class="title">{{ liveInfo.liveName }}</span>
         <div class="inputform" :class="{ error1: errorname, error2: errorpsd }">
           <input
             ref="nickname"
@@ -21,7 +21,9 @@
             :class="{ active: isInput === 2 }"
             @focus="isInput = 2"
           />
-          <el-button type="primary" @click="login">登录</el-button>
+          <el-button type="primary" @click="login" @keyup.enter.native="login()"
+            >登录</el-button
+          >
         </div>
         <span class="tips">推荐使用Chrome 58以上版本浏览器</span>
       </div>
@@ -33,6 +35,7 @@
 </template>
 <script>
 import inspect from "./components/inspect";
+import TRTC from "trtc-js-sdk";
 export default {
   data() {
     return {
@@ -49,10 +52,19 @@ export default {
   components: {
     inspect,
   },
+  created() {
+    // 判断浏览器是否能够支持服务
+    this.checkSystemRequirement();
+  },
   mounted() {
     this.initStyle();
     // 获取该场直播信息
     this.getliveInfo();
+    document.onkeyup = (e) => {
+      if (e.keyCode == 13) {
+        this.login();
+      }
+    };
   },
   watch: {
     screenHeight(val) {
@@ -61,6 +73,16 @@ export default {
     },
   },
   methods: {
+    // 检测是否能够支持
+    checkSystemRequirement() {
+      TRTC.checkSystemRequirements().then((result) => {
+        if (!result) {
+          this.$router.push({
+            name:'error',
+          })
+        }
+      });
+    },
     // 设置视图大小
     initStyle() {
       console.log(this.roomId);
@@ -76,17 +98,19 @@ export default {
       };
     },
     // 点击登录
-    getliveInfo(){
+    getliveInfo() {
       let params = {
-        roomId: this.roomId
-      }
-      this.$http.post(this.$http.adornUrl('live/getInfoByRoomId','proxyLl'),params).then((data)=>{
-        console.log(data);
-        this.liveInfo = data.data;
-              document.title = this.liveInfo.liveName;
-        let livedata = JSON.stringify(data.data);
-        window.sessionStorage.setItem('liveInfo',livedata);
-      })
+        roomId: this.roomId,
+      };
+      this.$http
+        .post(this.$http.adornUrl("live/getInfoByRoomId", "proxyLl"), params)
+        .then((data) => {
+          console.log(data);
+          this.liveInfo = data.data;
+          document.title = this.liveInfo.liveName;
+          let livedata = JSON.stringify(data.data);
+          window.sessionStorage.setItem("liveInfo", livedata);
+        });
     },
     login() {
       if (this.nickname == "") {
@@ -123,7 +147,7 @@ export default {
   justify-content: center;
   align-items: center;
   background: url("../assets/背景图.png");
-     background-size: 100% 100%;
+  background-size: 100% 100%;
   .loginform {
     height: 400px;
     width: 340px;

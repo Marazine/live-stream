@@ -28,6 +28,12 @@ common.keys().forEach((key) => {
     name: 'live',
     component:()=>import ('../views/live'),
     hidder: true,
+  },
+  {
+    path:'/error',
+    name: 'error',
+    component:()=>import ('../views/error'),
+    hidder: true,
   }
 ]
 

@@ -252,6 +252,13 @@ export default {
   created() {
     this.initVido();
     this.begin();
+    // 获取默认的设备ID
+    TRTC.getCameras().then((devices)=>{
+      window.sessionStorage.setItem('cameraId',devices[0].deviceId);
+    })
+    TRTC.getMicrophones().then((devices)=>{
+      window.sessionStorage.setItem('audioId',devices[0].deviceId);
+    })
   },
   methods: {
     initVido() {
@@ -398,6 +405,7 @@ export default {
         if (item.cameraName == this.cameraName) {
           this.localStream.switchDevice("video", item.id).then(() => {
             console.log("摄像头切换成功");
+            window.sessionStorage.setItem('cameraId',item.id);
             const videos = document.getElementsByTagName("video");
             for (let i = 0; i < videos.length; i++) {
               videos[i].style.position = "relative";
@@ -425,7 +433,8 @@ export default {
       this.mkflist.forEach((item) => {
         if (item.mkfName == this.mkfName) {
           this.localStream.switchDevice("audio", item.id).then(() => {
-            console.log("摄像头切换成功");
+            console.log("麦克风切换成功");
+            window.sessionStorage.setItem('audioId',item.id);
           });
         }
       });
