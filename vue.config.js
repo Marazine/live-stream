@@ -40,7 +40,7 @@ module.exports = {
         },
         proxy: { // 配置跨域
             [process.env.VUE_APP_BASE_API]: { //要访问的跨域的api的域名
-                target: `http://localhost:${port}/`,
+                target: `//localhost:${port}/`,
                 ws: true,
                 changOrigin: true,
                 pathRewrite: {
@@ -48,7 +48,7 @@ module.exports = {
                 }
             },
             '/proxyLl': {
-                target: 'http://zhibotest.yl1001.com/',
+                target: 'http://zhibotest.yl1001.com',
                 // target:'http://zhibo.yl1001.com/',
                 ws: true,
                 changOrigin: true,
@@ -63,6 +63,15 @@ module.exports = {
                 changOrigin: true,
                 pathRewrite: {
                     '^/proxyZx': ''
+                }
+            },
+            '/proxyCq': {
+                target: '//wk.yl1001.com/',
+                // target: 'http://zhibotest.yl1001.com/',
+                ws: true,
+                changOrigin: true,
+                pathRewrite: {
+                    '^/proxyCq': ''
                 }
             },
         },
